@@ -1,4 +1,4 @@
-package com.usermanager.usermanager.infraestructure.persistence.repository;
+package com.usermanager.usermanager.infraestructure.persistence;
 
 import com.usermanager.usermanager.domain.model.User;
 import com.usermanager.usermanager.application.ports.UserRepository;
