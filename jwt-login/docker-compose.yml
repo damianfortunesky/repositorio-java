@@ -1,0 +1,73 @@
+# 2. docker-compose.yml → Orquestador de múltiples contenedores
+
+# Define cómo ejecutar varias imágenes a la vez (backend, base de datos, frontend, etc).
+
+# Maneja:
+
+# Redes entre contenedores (backend ↔ postgres).
+
+# Variables de entorno (DB_USER, DB_PASSWORD).
+
+# Montaje de volúmenes (para persistencia de datos).
+
+# Puertos expuestos.
+
+# ----------------------------------------------------------------------------------------------------------------- #
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - backend_net
+
+  app:
+    build: .
+    container_name: spring_app
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres # Usamos el nombre del servicio
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    networks:
+      - backend_net
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  backend_net:
+    driver: bridge

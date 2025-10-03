@@ -1,0 +1,45 @@
+
+# Dockerfile → Receta para construir una imagen, es como el manual de construcción de tu aplicación.
+
+# Define qué hay adentro de la imagen: SO base, dependencias, tu código, cómo se arranca.
+
+# El Dockerfile describe cómo empaquetar tu API (compilar con Maven y generar el .jar).
+
+# Al final produce una imagen.
+
+# ------------------------------ Etapa 1: builder ------------------------------------------------------------------------- #
+
+# Usa una imagen con Maven + JDK 17 ya instalados.
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
+
+# Define /app como directorio de trabajo.
+WORKDIR /app
+
+# Copia solo el pom.xml 
+COPY pom.xml .
+
+# Baja todas las dependencias.
+RUN mvn dependency:go-offline -B
+
+# Copia el código fuente.
+COPY src ./src
+
+# Compila el proyecto y genera el .jar en /app/target.
+RUN mvn clean package -DskipTests
+
+# ---------------- Etapa 2: Imagen final (runtime) ------------------------------------------------------------------------- #
+
+# Usa una imagen liviana con JDK 17 sobre Alpine Linux. Esto reduce el peso final (tu jar + JDK → ~200 MB en vez de 1 GB).
+FROM eclipse-temurin:17-jdk-alpine
+
+# Define /app como directorio de trabajo.
+WORKDIR /app
+
+# Copia el .jar generado en la etapa 1.
+COPY --from=builder /app/target/*.jar app.jar
+
+# Arranca tu aplicación con java -jar app.jar.
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Expone el puerto 8080 para que Docker pueda mapearlo.
+EXPOSE 8080
